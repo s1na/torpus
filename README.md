@@ -1,4 +1,5 @@
 torpus
 ======
 
-Make a tweet corpus
+Torpus gives you the ability to gather tweets, we use it for data science purposes.
+
