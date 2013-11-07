@@ -21,8 +21,9 @@ Then you need to get your access token, open a python shell:
 ```
 from twython import Twython
 
-twitter = Twython(CONSUMER_KEY, CONSUMER_SECRET)
+twitter = Twython(CONSUMER_KEY, CONSUMER_SECRET, oauth_version=2)
 ACCESS_TOKEN = twitter.obtain_access_token()
 ```
 
 write the ACCESS_TOKEN to the config file.
+
