@@ -5,5 +5,5 @@ from torpus.daemon import Daemon
 
 if __name__ == '__main__':
     connect('torpus')
-    dmon = Daemon()
-    dmon.start()
+    dmon = Daemon().start()
+    dmon.ask('add_user %s' % SEED_USER)

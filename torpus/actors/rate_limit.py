@@ -13,6 +13,6 @@ class RateLimitActor(ThreadingActor):
 
     def on_receive(self, msg):
         resource_families = ','.join([resource.split('/')[0] for resource in msg])
-        rate_limits = self.twitter.\
+        rate_limit = self.twitter.\
                 get_application_rate_limit_status(resources=resource_families)
-        return rate_limits['resources']
+        return rate_limit['resources']
