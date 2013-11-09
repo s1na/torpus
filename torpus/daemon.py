@@ -4,11 +4,13 @@ import datetime
 from pykka import ThreadingActor
 from pykka import ActorRegistery
 from twython import Twython
+from mongoengine import connect
 
 from torpus.config import *
 from torpus.actors.rate_limit import RateLimitActor
 from torpus.actors.timer import TimerActor
 from torpus.actors.resource import ResourceActor
+from torpus.db import DaemonModel
 
 
 class Daemon(ThreadingActor):
@@ -19,13 +21,16 @@ class Daemon(ThreadingActor):
             TWITTER_CONSUMER_KEY,
             access_token=TWITTER_ACCESS_TOKEN,
         )
-        self.jobs = deque()
+        #self.jobs = deque()
         self.used_resources = [
             'application/rate_limit_status',
         ]
         self.rate_limit = {}
         self.local_remainings = {}
         self.reset_timers = {}
+
+        self.db_con = connect(MONGO_DATABASE)
+        self.daemon_data = DaemonModel(jobs=[]).save()
 
     def _active_actors(self, cls=None):
         if not cls:
@@ -71,7 +76,8 @@ class Daemon(ThreadingActor):
             if not len(msg):
                 print '[Daemon] msg from resource is empty.'
                 return False
-            self.jobs.append(msg)
+            self.daemon_data.append_job(msg)
+            self.daemon_data.save()
             if len(self._active_actors(ResourceActor)) <= ACTIVE_ACTOR_LIMIT:
                 resource = msg.split(' ', 1)[0]
                 resource_family = resource.split('/')[0]
@@ -79,12 +85,13 @@ class Daemon(ThreadingActor):
                     resource_actor = ResourceActor(
                         self.actor_ref, self.twitter
                     ).start()
-                    resource_actor.tell(self.jobs.pop())
+                    resource_actor.tell(self.daemon_data.pop_job())
+                    self.daemon_data.save()
                 else:
                     self._update_rate_limit()
         if actor == 'timer':
             if msg == 'repeat':
-                if len(self.jobs) > 0:
+                if len(self.daemon_data.jobs) > 0:
                     if len(self._active_actors(ResourceActor)) <\
                        ACTIVE_ACTOR_LIMIT:
                         self._do_job()
