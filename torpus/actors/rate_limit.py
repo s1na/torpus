@@ -1,4 +1,5 @@
 from pykka import ThreadingActor
+from twython import TwythonRateLimitError
 
 
 class RateLimitActor(ThreadingActor):
@@ -13,6 +14,10 @@ class RateLimitActor(ThreadingActor):
 
     def on_receive(self, msg):
         resource_families = ','.join([resource.split('/')[0] for resource in msg])
-        rate_limit = self.twitter.\
-                get_application_rate_limit_status(resources=resource_families)
+        try:
+            rate_limit = self.twitter.\
+                    get_application_rate_limit_status(resources=resource_families)
+        except TwythonRateLimitError as e:
+            print e.msg
+            self.daemon_actor.tell('stop')
         return rate_limit['resources']

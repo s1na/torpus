@@ -1,4 +1,7 @@
 from pykka import ThreadingActor
+from twython import TwythonError
+
+from torpus.db import add_resource
 
 
 class ResourceActor(ThreadingActor):
@@ -12,9 +15,17 @@ class ResourceActor(ThreadingActor):
         resource, args = msg.split(' ', 1)
         res = None
 
-        if resource == 'users/show':
-            res = self.twitter.show_user(*args)
-        elif resource == 'users/lookup':
-            res = self.twitter.lookup_user(*args)
+        try:
+            if resource == 'users/show':
+                res = self.twitter.show_user(*args)
+            elif resource == 'users/lookup':
+                res = self.twitter.lookup_user(*args)
+        except TwythonError as e:
+            print e.msg
 
-        # If good res, add to db.
+        if res:
+            ok = add_resource(res)
+            if not ok:
+                self.daemon_actor.tell('resource ' + msg)
+        else:
+            self.daemon_actor.tell('resource ' + msg)
